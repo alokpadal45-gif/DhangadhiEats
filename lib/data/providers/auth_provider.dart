@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
+import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   UserModel? _user;
@@ -27,18 +28,30 @@ class AuthProvider extends ChangeNotifier {
     setLoading(true);
     setError(null);
     try {
-      await Future.delayed(const Duration(seconds: 2));
-      _user = UserModel(
-        id: '1',
-        fullName: 'Alok Padal',
+      final response = await AuthService.login(
         phone: phone,
-        role: 'customer',
-        isActive: true,
-        createdAt: DateTime.now(),
+        password: password,
       );
-      _isLoggedIn = true;
-      notifyListeners();
-      return true;
+      if (response['success'] == true) {
+        final userData = response['user'];
+        _user = UserModel(
+          id: userData['id'],
+          fullName: userData['full_name'],
+          phone: userData['phone'],
+          email: userData['email'],
+          role: userData['role'],
+          address: userData['address'],
+          profileImage: userData['profile_image'],
+          isActive: true,
+          createdAt: DateTime.now(),
+        );
+        _isLoggedIn = true;
+        notifyListeners();
+        return true;
+      } else {
+        setError(response['message']);
+        return false;
+      }
     } catch (e) {
       setError(e.toString());
       return false;
@@ -47,22 +60,40 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> register(String fullName, String phone, String password, String role) async {
+  Future<bool> register(
+    String fullName,
+    String phone,
+    String password,
+    String role,
+  ) async {
     setLoading(true);
     setError(null);
     try {
-      await Future.delayed(const Duration(seconds: 2));
-      _user = UserModel(
-        id: '1',
+      final response = await AuthService.register(
         fullName: fullName,
         phone: phone,
+        password: password,
         role: role,
-        isActive: true,
-        createdAt: DateTime.now(),
       );
-      _isLoggedIn = true;
-      notifyListeners();
-      return true;
+      if (response['success'] == true) {
+        final userData = response['user'];
+        _user = UserModel(
+          id: userData['id'],
+          fullName: userData['full_name'],
+          phone: userData['phone'],
+          email: userData['email'],
+          role: userData['role'],
+          address: userData['address'],
+          isActive: true,
+          createdAt: DateTime.now(),
+        );
+        _isLoggedIn = true;
+        notifyListeners();
+        return true;
+      } else {
+        setError(response['message']);
+        return false;
+      }
     } catch (e) {
       setError(e.toString());
       return false;
@@ -71,7 +102,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  void logout() {
+  Future<void> logout() async {
+    await AuthService.logout();
     _user = null;
     _isLoggedIn = false;
     notifyListeners();
